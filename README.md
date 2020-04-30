@@ -1,6 +1,6 @@
 ## Lybie's Auto-Update Script
 
-This is a little update utility for [places-of-unity.com](places-of-unity.com) in order to make it
+This is a little update utility for [places-of-unity.com](https://places-of-unity.com) in order to make it
 less complex to maintain essential parts of the website (such as Current Location and the Places
 that have been added).
 
