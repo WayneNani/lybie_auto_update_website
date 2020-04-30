@@ -1,0 +1,5 @@
+cx_Oracle
+gitpython
+pysftp
+termcolor
+pytest
