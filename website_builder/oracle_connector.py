@@ -51,8 +51,8 @@ UPDATE = {
 
 
 def output_type_handler(cursor, name, defaultType, size, precision, scale):
-    # Assumption defaultType is in (cx_Oracle.CLOB, cx_Oracle.LONG_BINARY)
-    magic = cx_Oracle.LONG_STRING if defaultType == cx_Oracle.CLOB else cx_Oracle.LONG_BINARY
+    # Assumption defaultType is in (cx_Oracle.BLOB, cx_Oracle.BLOB)
+    magic = cx_Oracle.LONG_BINARY if defaultType == cx_Oracle.BLOB else cx_Oracle.LONG_STRING
     return cursor.var(magic, arraysize=cursor.arraysize)
 
 

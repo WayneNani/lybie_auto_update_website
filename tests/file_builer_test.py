@@ -6,7 +6,7 @@ def test_get_config_file():
     test_en = 'EN\nEN'
     template = 'Test1: [TEXT_DE]\nTest2: [TEXT_EN]'
 
-    assert fb.get_config_file_content(test_de, test_en, template) == 'Test1: DE<br/>DE\nTest2: EN<br/>EN'
+    assert fb.get_config_file_content(test_de, test_en, template) == 'Test1: DE<br>DE\nTest2: EN<br>EN'
 
 
 def test_sidebar_with_travel_date():

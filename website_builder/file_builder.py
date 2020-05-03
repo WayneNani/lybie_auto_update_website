@@ -51,7 +51,7 @@ def get_sidebar_file_content(location, travel_date, template):
 
 def nl_to_br(text):
     """Htmlize line breaks."""
-    return text.replace('\n', '<br/>')
+    return text.replace('\n', '<br>')
 
 
 def get_config_file_content(sidebar_text_de, sidebar_text_en, template):

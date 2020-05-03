@@ -105,7 +105,7 @@ def db_connection_string(credentials=None):
     if credentials is None:
         credentials = load_config()
     return (
-        f'{credentials.get("ORACLE_DB_USER_TEST")}'
-        f'/{credentials.get("ORACLE_DB_PASSWORD_TEST")}'
+        f'{credentials.get("ORACLE_DB_USER")}'
+        f'/{credentials.get("ORACLE_DB_PASSWORD")}'
         f'@{credentials.get("ORACLE_DB_IP")}:1539/xepdb1'
     )

@@ -5,7 +5,7 @@ import website_builder.file_builder as file_builder
 import website_builder.util as util
 import website_builder.oracle_connector as oc
 
-CONFIG = util.load_config()
+CONFIG = util.load_config(os.path.join('website_builder', 'credentials.json'))
 
 GIT_AUTHOR_EMAIL = CONFIG.get("GIT_EMAIL")
 HUGO_BASE = CONFIG.get("HUGO_BASE")
