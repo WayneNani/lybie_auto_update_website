@@ -1,5 +1,10 @@
 import cx_Oracle
 import datetime
+import requests
+
+import website_builder.util_credentials as util_credentials
+
+WEBSERVICE_URL = util_credentials.webservice_url()
 
 ENCODING = "UTF-8"
 
@@ -60,31 +65,23 @@ def connect(db_connect_string):
     return cx_Oracle.connect(db_connect_string, encoding=ENCODING)
 
 
-def get_place_data(connection, last_access=datetime.datetime(1970, 1, 1, )):
-    """Generator of dicts per place entry."""
-    labels = (  # matching first db rows entries
-        "id", "place_name", "text_de", "text_en", "location_de", "location_en", "creation_date", "file_name",
-        "date_modified", "id_thumbnail"
-    )
-    count = len(labels)
-    with connection.cursor() as temp_cursor:
-        temp_cursor.execute(SELECT["PLACE"], last_access=last_access)
-
-        for row in temp_cursor.fetchall():
-            yield {k: v for k, v in zip(labels, row[:count])}
+def get_webservice_url(module):
+    url = WEBSERVICE_URL + module
+    return url
 
 
-def get_images_for_place(connection, place_id):
-    """Generator of dicts per image for place entry."""
-    labels = (  # matching first db rows entries
-        "id",
-    )
-    count = len(labels)
-    with connection.cursor() as cur:
-        cur.execute(SELECT["IMAGE_FOR_PLACE"], id=place_id)
+def get_place_data(last_access=datetime.datetime(1970, 1, 1, )):
+    response = requests.get(get_webservice_url('places/places'),
+                            headers={'last_access': last_access.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'})
 
-        for row in cur.fetchall():
-            yield {k: v for k, v in zip(labels, row[:count])}
+    return response.json()['items']
+
+
+def get_images_for_place(place_id):
+    response = requests.get(get_webservice_url('images/place_images'),
+                            headers={'id_place': f'{place_id}'})
+
+    return response.json()['items']
 
 
 def get_template(connection, template_type):

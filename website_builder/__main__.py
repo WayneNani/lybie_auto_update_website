@@ -4,8 +4,10 @@ import datetime
 import website_builder.file_builder as file_builder
 import website_builder.util as util
 import website_builder.oracle_connector as oc
+import website_builder.util_credentials as util_credentials
+import website_builder.util_print as util_print
 
-CONFIG = util.load_config(os.path.join('website_builder', 'credentials.json'))
+CONFIG = util_credentials.load_config(os.path.join('website_builder', 'credentials.json'))
 
 GIT_AUTHOR_EMAIL = CONFIG.get("GIT_EMAIL")
 HUGO_BASE = CONFIG.get("HUGO_BASE")
@@ -19,7 +21,7 @@ os.chdir(HUGO_BASE)
 
 repo = util.initiate_git_repo(HUGO_BASE)
 
-db_connect_string = util.db_connection_string(CONFIG)
+db_connect_string = util_credentials.db_connection_string(CONFIG)
 # Establish connection to Oracle DB
 with oc.connect(db_connect_string) as con:
     last_access = oc.get_static_data(con, 'LAST_ACCESS')["date_value"]
@@ -33,9 +35,9 @@ with oc.connect(db_connect_string) as con:
     try:
         file_builder.write_file(path=os.path.join(HUGO_BASE, 'config.toml'),
                                 mode='w', content=config_content)
-        util.print_success('config.toml erfolgreich gespeichert')
+        util_print.print_success('config.toml erfolgreich gespeichert')
     except Exception as e:
-        util.print_error('Fehler beim speichern von config.toml')
+        util_print.print_error('Fehler beim speichern von config.toml')
         errors = True
 
     # Generate and write sidebar.html to disk
@@ -48,13 +50,13 @@ with oc.connect(db_connect_string) as con:
         file_builder.write_file(path=os.path.join(HUGO_BASE, 'themes', 'hugo-creative-portfolio-theme',
                                                   'layouts', 'partials', 'sidebar.html'),
                                 mode='w', content=location)
-        util.print_success('sidebar.html erfolgreich gespeichert')
+        util_print.print_success('sidebar.html erfolgreich gespeichert')
     except Exception as _:
-        util.print_error('Fehler beim speichern von sidebar.html')
+        util_print.print_error('Fehler beim speichern von sidebar.html')
         errors = True
 
     # Get new places and create files and images
-    for place in oc.get_place_data(con, last_access):
+    for place in oc.get_place_data(last_access):
         images_file_names = []
         place_template = oc.get_template(con, 'PLACE')[0]
 
@@ -64,21 +66,21 @@ with oc.connect(db_connect_string) as con:
             try:
                 util.save_file_to_disk(thumbnail[0], thumbnail[1], HUGO_BASE)
             except Exception as e:
-                util.print_error(f'Fehler beim speichern von {thumbnail[0]}')
+                util_print.print_error(f'Fehler beim speichern von {thumbnail[0]}')
                 print(e)
                 errors = True
 
             thumbnail_name = thumbnail[0]
         else:
             thumbnail_name = ''
-            util.print_error(f'Kein Thumbnail für "{place["place_name"]}" angegeben!')
+            util_print.print_error(f'Kein Thumbnail für "{place["place_name"]}" angegeben!')
 
         # Save Images referenced in the text
         try:
             images_file_names = util.save_files_to_disk(
-                oc.get_images_for_place(con, place["id"]), HUGO_BASE, con)
+                oc.get_images_for_place(place["id"]), HUGO_BASE, con)
         except Exception as _:
-            util.print_error(f'Fehler beim speichern der Bilder von "{place["place_name"]}"')
+            util_print.print_error(f'Fehler beim speichern der Bilder von "{place["place_name"]}"')
             errors = True
 
         if len(images_file_names) > 1:
@@ -111,7 +113,7 @@ with oc.connect(db_connect_string) as con:
                 path=os.path.join(HUGO_BASE, 'content', 'portfolio', place["place_name"] + '.md'),
                 mode='w', content=place_content_en)
         except Exception as _:
-            util.print_error(f'Fehler beim speichern von {place["place_name"]}')
+            util_print.print_error(f'Fehler beim speichern von {place["place_name"]}')
             errors = True
 
     # oracle_connector.update_last_access(con, datetime.datetime.now())
@@ -138,7 +140,7 @@ if repo.is_dirty() and not errors:
                                      GIT_AUTHOR_EMAIL)
 
         repo.heads.master.checkout()
-        util.print_success('Das wars mit deiner Arbeit...jetzt ist Jakob dran ;)')
+        util_print.print_success('Das wars mit deiner Arbeit...jetzt ist Jakob dran ;)')
     else:
         custom_commit_message = input('Was hast du an der Seite verändert?\n')
 
@@ -153,6 +155,6 @@ if repo.is_dirty() and not errors:
             CONFIG.get('SFTP_SERVER'), CONFIG.get('SFTP_USER'), CONFIG.get('SFTP_PASSWORD'))
 
 elif errors:
-    util.print_error('Es sind einige Fehler aufgetreten. Bitte sag Jakob bescheid :(')
+    util_print.print_error('Es sind einige Fehler aufgetreten. Bitte sag Jakob bescheid :(')
 else:
     print('Es wurden keine Änderungen vorgenommen...')

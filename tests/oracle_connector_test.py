@@ -2,10 +2,11 @@ import datetime
 import os
 
 import website_builder.oracle_connector as oc
-import website_builder.util as util
+import website_builder.util_credentials as util_credentials
 
-DB_CONNECTION_STRING = util.db_connection_string(util.load_config(
-    os.path.join('tests', 'credentials.json')))
+DB_CONNECTION_STRING = util_credentials.db_connection_string(
+    util_credentials.load_config(
+        os.path.join('tests', 'credentials.json')))
 
 
 def test_oracle_place_data():
@@ -18,20 +19,28 @@ def test_oracle_place_data():
         'location_en': 'locEN',
         'file_name': 'herz-blüten.jpg',
         'id_thumbnail': 22,
-        'creation_date': datetime.datetime(2018, 5, 6, ),
-        'date_modified': datetime.datetime(2020, 4, 10, ),
+        'creation_date': datetime.datetime(2018, 5, 5, 22, ).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'date_modified': datetime.datetime(2020, 4, 9, 22, ).strftime('%Y-%m-%dT%H:%M:%SZ'),
     }
-    with oc.connect(DB_CONNECTION_STRING) as con:
-        place = next(oc.get_place_data(con))
-        for key in data.keys():
-            assert place[key] == data[key]
+    place = oc.get_place_data()[0]
+    assert place == data
 
 
-def test_oracle_image():
+def test_oracle_image_mapping():
     data = {
         'id': 22,
     }
-    with oc.connect(DB_CONNECTION_STRING) as con:
-        image = next(oc.get_images_for_place(con, 1))
-        for key in data.keys():
-            assert image[key] == data[key]
+    image = oc.get_images_for_place(1)[0]
+    assert image == data
+
+
+def test_oracle_multiple_images_mapping():
+    data = [{'id': 61}, {'id': 101}, {'id': 102}]
+    image = oc.get_images_for_place(41)
+    assert image == data
+
+
+def test_oracle_no_image_mapping():
+    data = []
+    image = oc.get_images_for_place(-3)
+    assert image == data
