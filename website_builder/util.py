@@ -50,13 +50,13 @@ def check_git_for_matching_branch(repo):
     return False
 
 
-def save_files_to_disk(images, base_path, db_connection):
+def save_files_to_disk(images, base_path):
     images_file_names = []
     for image in images:
-        image_row = oracle_connector.get_image(db_connection, image["id"])
-        images_file_names.append(image_row[0])
+        image_binary = oracle_connector.get_image(image["id"])
+        images_file_names.append(image["file_name"])
 
-        save_file_to_disk(image_row[0], image_row[1], base_path)
+        save_file_to_disk(image["file_name"], image_binary, base_path)
 
     return images_file_names
 

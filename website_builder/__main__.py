@@ -21,102 +21,97 @@ os.chdir(HUGO_BASE)
 
 repo = util.initiate_git_repo(HUGO_BASE)
 
-db_connect_string = util_credentials.db_connection_string(CONFIG)
-# Establish connection to Oracle DB
-with oc.connect(db_connect_string) as con:
-    last_access = oc.get_static_data(con, 'LAST_ACCESS')["date_value"]
+last_access = oc.get_static_date('LAST_ACCESS')
 
-    # Generate and write config.toml to disk
-    config_content = file_builder.get_config_file_content(
-        sidebar_text_de=oc.get_static_data(con, 'VORSTELLUNGSTEXT_DE')["varchar_value"],
-        sidebar_text_en=oc.get_static_data(con, 'VORSTELLUNGSTEXT_EN')["varchar_value"],
-        template=oc.get_template(con, 'CONFIG')[0])
+# Generate and write config.toml to disk
+config_content = file_builder.get_config_file_content(
+    sidebar_text_de=oc.get_static_varchar('VORSTELLUNGSTEXT_DE'),
+    sidebar_text_en=oc.get_static_varchar('VORSTELLUNGSTEXT_EN'),
+    template=oc.get_template('CONFIG'))
 
+try:
+    file_builder.write_file(path=os.path.join(HUGO_BASE, 'config.toml'),
+                            mode='w', content=config_content)
+    util_print.print_success('config.toml erfolgreich gespeichert')
+except Exception as e:
+    util_print.print_error('Fehler beim speichern von config.toml')
+    errors = True
+
+# Generate and write sidebar.html to disk
+location = file_builder.get_sidebar_file_content(
+    location=oc.get_static_varchar('AUFENTHALTSORT'),
+    travel_date=oc.get_static_varchar('REISEDATUM'),
+    template=oc.get_template('SIDEBAR'))
+
+try:
+    file_builder.write_file(path=os.path.join(HUGO_BASE, 'themes', 'hugo-creative-portfolio-theme',
+                                              'layouts', 'partials', 'sidebar.html'),
+                            mode='w', content=location)
+    util_print.print_success('sidebar.html erfolgreich gespeichert')
+except Exception as _:
+    util_print.print_error('Fehler beim speichern von sidebar.html')
+    errors = True
+
+# Get new places and create files and images
+for place in oc.get_place_data(last_access):
+    images_file_names = []
+    place_template = oc.get_template('PLACE')
+
+    # Save Thumbnail
+    if place["id_thumbnail"]:
+        thumbnail = oc.get_image(place["id_thumbnail"])
+        try:
+            util.save_file_to_disk(place['file_name'], thumbnail, HUGO_BASE)
+        except Exception as e:
+            util_print.print_error(f'Fehler beim speichern von {place["file_name"]}')
+            print(e)
+            errors = True
+
+        thumbnail_name = place['file_name']
+    else:
+        thumbnail_name = ''
+        util_print.print_error(f'Kein Thumbnail für "{place["place_name"]}" angegeben!')
+
+    # Save Images referenced in the text
     try:
-        file_builder.write_file(path=os.path.join(HUGO_BASE, 'config.toml'),
-                                mode='w', content=config_content)
-        util_print.print_success('config.toml erfolgreich gespeichert')
-    except Exception as e:
-        util_print.print_error('Fehler beim speichern von config.toml')
-        errors = True
-
-    # Generate and write sidebar.html to disk
-    location = file_builder.get_sidebar_file_content(
-        location=oc.get_static_data(con, 'AUFENTHALTSORT')["varchar_value"],
-        travel_date=oc.get_static_data(con, 'REISEDATUM')["varchar_value"],
-        template=oc.get_template(con, 'SIDEBAR')[0])
-
-    try:
-        file_builder.write_file(path=os.path.join(HUGO_BASE, 'themes', 'hugo-creative-portfolio-theme',
-                                                  'layouts', 'partials', 'sidebar.html'),
-                                mode='w', content=location)
-        util_print.print_success('sidebar.html erfolgreich gespeichert')
+        images_file_names = util.save_files_to_disk(
+            oc.get_images_for_place(place["id"]), HUGO_BASE)
     except Exception as _:
-        util_print.print_error('Fehler beim speichern von sidebar.html')
+        util_print.print_error(f'Fehler beim speichern der Bilder von "{place["place_name"]}"')
         errors = True
 
-    # Get new places and create files and images
-    for place in oc.get_place_data(last_access):
-        images_file_names = []
-        place_template = oc.get_template(con, 'PLACE')[0]
+    if len(images_file_names) > 1:
+        many_images = True
 
-        # Save Thumbnail
-        if place["id_thumbnail"]:
-            thumbnail = oc.get_image(con, place["id_thumbnail"])
-            try:
-                util.save_file_to_disk(thumbnail[0], thumbnail[1], HUGO_BASE)
-            except Exception as e:
-                util_print.print_error(f'Fehler beim speichern von {thumbnail[0]}')
-                print(e)
-                errors = True
+    place_content_de = file_builder.get_place_file_content(
+        text=place["text_de"],
+        location=place["location_de"],
+        creation_date=place["creation_date"].strftime("%Y-%m-%d"),
+        thumbnail=thumbnail_name,
+        template=place_template,
+        images=images_file_names)
 
-            thumbnail_name = thumbnail[0]
-        else:
-            thumbnail_name = ''
-            util_print.print_error(f'Kein Thumbnail für "{place["place_name"]}" angegeben!')
+    place_content_en = file_builder.get_place_file_content(
+        text=place["text_en"],
+        location=place["location_en"],
+        creation_date=place["creation_date"].strftime("%Y-%m-%d"),
+        thumbnail=thumbnail_name,
+        template=place_template,
+        images=images_file_names)
 
-        # Save Images referenced in the text
-        try:
-            images_file_names = util.save_files_to_disk(
-                oc.get_images_for_place(place["id"]), HUGO_BASE, con)
-        except Exception as _:
-            util_print.print_error(f'Fehler beim speichern der Bilder von "{place["place_name"]}"')
-            errors = True
+    try:
+        file_builder.write_file(
+            path=os.path.join(HUGO_BASE, 'content', 'portfolio', place["place_name"] + '.de.md'),
+            mode='w', content=place_content_de)
 
-        if len(images_file_names) > 1:
-            many_images = True
+        file_builder.write_file(
+            path=os.path.join(HUGO_BASE, 'content', 'portfolio', place["place_name"] + '.md'),
+            mode='w', content=place_content_en)
+    except Exception as _:
+        util_print.print_error(f'Fehler beim speichern von {place["place_name"]}')
+        errors = True
 
-        place_template = oc.get_template(con, 'PLACE')[0]
-
-        place_content_de = file_builder.get_place_file_content(
-            text=place["text_de"],
-            location=place["location_de"],
-            creation_date=place["creation_date"].strftime("%Y-%m-%d"),
-            thumbnail=thumbnail_name,
-            template=place_template,
-            images=images_file_names)
-
-        place_content_en = file_builder.get_place_file_content(
-            text=place["text_en"],
-            location=place["location_en"],
-            creation_date=place["creation_date"].strftime("%Y-%m-%d"),
-            thumbnail=thumbnail_name,
-            template=place_template,
-            images=images_file_names)
-
-        try:
-            file_builder.write_file(
-                path=os.path.join(HUGO_BASE, 'content', 'portfolio', place["place_name"] + '.de.md'),
-                mode='w', content=place_content_de)
-
-            file_builder.write_file(
-                path=os.path.join(HUGO_BASE, 'content', 'portfolio', place["place_name"] + '.md'),
-                mode='w', content=place_content_en)
-        except Exception as _:
-            util_print.print_error(f'Fehler beim speichern von {place["place_name"]}')
-            errors = True
-
-    # oracle_connector.update_last_access(con, datetime.datetime.now())
+# oc.update_last_access(date_value=datetime.datetime.now())
 
 repo.git.add(all=True)
 
