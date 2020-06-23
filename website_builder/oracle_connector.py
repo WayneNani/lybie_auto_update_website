@@ -61,7 +61,7 @@ class Webservice:
 
     def update_last_access(self, date_value=None):
         response = requests.put(self.get_webservice_url('parameters/parameter'),
-                                headers={'date_value': date_value.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z',
+                                headers={'date_value': date_value.strftime('%Y-%m-%dT%H:%M:%SZ'),
                                          'parameter_name': 'LAST_ACCESS'})
 
         if response.status_code != 200:

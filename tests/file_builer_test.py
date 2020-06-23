@@ -2,8 +2,8 @@ import website_builder.file_builder as fb
 
 
 def test_get_config_file():
-    test_de = 'DE\nDE'
-    test_en = 'EN\nEN'
+    test_de = 'DE\r\nDE'
+    test_en = 'EN\r\nEN'
     template = 'Test1: [TEXT_DE]\nTest2: [TEXT_EN]'
 
     assert fb.get_config_file_content(test_de, test_en, template) == 'Test1: DE<br>DE\nTest2: EN<br>EN'
