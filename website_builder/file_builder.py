@@ -51,7 +51,7 @@ def get_sidebar_file_content(location, travel_date, template):
 
 def nl_to_br(text):
     """Htmlize line breaks."""
-    return text.replace('\n', '<br>')
+    return text.replace('\r\n', '<br>')
 
 
 def get_config_file_content(sidebar_text_de, sidebar_text_en, template):
@@ -66,3 +66,11 @@ def write_file(path, mode, content):
     """Write content to file at path with mode."""
     with open(path, mode) as handle:
         handle.write(content)
+
+
+def write_text_file(path, content):
+    write_file(path, 'w', content)
+
+
+def write_binary_file(path, content):
+    write_file(path, 'wb', content)

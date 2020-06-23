@@ -4,9 +4,9 @@ import os
 import website_builder.oracle_connector as oc
 import website_builder.util_credentials as util_credentials
 
-DB_CONNECTION_STRING = util_credentials.db_connection_string(
+WEBSERVICE_BASE_URL = util_credentials.webservice_url(
     util_credentials.load_config(
-        os.path.join('tests', 'credentials.json')))
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'credentials.json')))
 
 
 def test_oracle_place_data():
@@ -22,7 +22,9 @@ def test_oracle_place_data():
         'creation_date': datetime.datetime(2018, 5, 5, 22, ).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'date_modified': datetime.datetime(2020, 4, 9, 22, ).strftime('%Y-%m-%dT%H:%M:%SZ'),
     }
-    place = oc.get_place_data()[0]
+    connector = oc.Webservice(WEBSERVICE_BASE_URL)
+
+    place = connector.get_place_data()[0]
     assert place == data
 
 
@@ -31,7 +33,9 @@ def test_oracle_image_mapping():
         'id': 22,
         'file_name': 'herz-blüten.jpg'
     }
-    image = oc.get_images_for_place(1)[0]
+    connector = oc.Webservice(WEBSERVICE_BASE_URL)
+
+    image = connector.get_images_for_place(1)[0]
     assert image == data
 
 
@@ -39,44 +43,57 @@ def test_oracle_multiple_images_mapping():
     data = [{'id': 61, 'file_name': 'place3_stones.jpg'},
             {'id': 101, 'file_name': 'place3_baum.jpg'},
             {'id': 102, 'file_name': 'place3_kristall.jpg'}]
-    image = oc.get_images_for_place(41)
+    connector = oc.Webservice(WEBSERVICE_BASE_URL)
+
+    image = connector.get_images_for_place(41)
     assert image == data
 
 
 def test_oracle_no_image_mapping():
     data = []
-    image = oc.get_images_for_place(-3)
+    connector = oc.Webservice(WEBSERVICE_BASE_URL)
+
+    image = connector.get_images_for_place(-3)
     assert image == data
 
 
 def test_oracle_template():
     data = "+++\nshowonlyimage = false\ndraft = false\nimage = \"[THUMBNAIL]\"\ndate = \"[" \
            "DATE]T18:25:22+05:30\"\nweight = 102\ndescription = \"[LOCATION]\"\n+++\n\n[IMAGE]\n\n[TEXT]"
-    template = oc.get_template('PLACE')
+    connector = oc.Webservice(WEBSERVICE_BASE_URL)
+
+    template = connector.get_template('PLACE')
 
     assert template == data
 
 
 def test_oracle_static_varchar():
     data = 'DE'
-    aufenthaltsort = oc.get_static_varchar('AUFENTHALTSORT')
+    connector = oc.Webservice(WEBSERVICE_BASE_URL)
+
+    aufenthaltsort = connector.get_static_varchar('AUFENTHALTSORT')
 
     assert aufenthaltsort == data
 
 
 def test_oracle_static_date():
     data = '2020-04-13T00:00:00Z'
-    last_access = oc.get_static_date('DUMMY_DATE')
+    connector = oc.Webservice(WEBSERVICE_BASE_URL)
+
+    last_access = connector.get_static_date('DUMMY_DATE')
 
     assert last_access == data
 
 
 def test_oracle_retrieve_image():
     image_park = open(os.path.join('tests', 'redoutenpark.jpg'), 'rb').read()
+    connector = oc.Webservice(WEBSERVICE_BASE_URL)
 
-    assert oc.get_image(1) == image_park
+    assert connector.get_image(1) == image_park
 
 
 def test_oracle_update_last_access():
-    oc.update_last_access(date_value=datetime.datetime.now())
+    connector = oc.Webservice(WEBSERVICE_BASE_URL)
+
+    connector.update_last_access(date_value=datetime.datetime.now())
     assert True
